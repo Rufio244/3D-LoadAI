@@ -1,1 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>3D LoadAI — สร้างภาพเคลื่อนไหว 3D</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background:#0f111a; color:#e0e6ff; }
+        .box { background:#1a1d2b; padding:20px; border-radius:12px; margin-bottom:15px; }
+        input, button, textarea { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:none; font-size:16px; }
+        button { background:#4f46e5; color:white; cursor:pointer; font-weight:bold; }
+        button:hover { background:#4338ca; }
+        .ai-selector { display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
+        .ai-tag { padding:6px 12px; background:#2d3142; border-radius:20px; cursor:pointer; }
+        .ai-tag.active { background:#4f46e5; }
+    </style>
+</head>
+<body>
+    <h1>🎬 3D LoadAI — เชื่อมความเข้าใจ สร้างโลก 3D</h1>
+    
+    <div class="box">
+        <h3>🔐 ปลดล็อคระบบก่อนใช้งาน</h3>
+        <input type="password" id="systemLock" placeholder="ใส่รหัสระบบ...">
+        <button onclick="unlockSystem()">ยืนยันรหัส</button>
+    </div>
+
+    <div class="box" id="configBox" style="opacity:0.3; pointer-events:none;">
+        <h3>🔑 ตั้งค่าคีย์ AI ภายนอก</h3>
+        <input type="text" id="geminiKey" placeholder="Google Gemini API Key">
+        <input type="text" id="openaiKey" placeholder="OpenAI GPT API Key">
+        <input type="text" id="claudeKey" placeholder="Anthropic Claude API Key">
+        <button onclick="saveKeys()">บันทึกคีย์</button>
+    </div>
+
+    <div class="box">
+        <h3>🧠 เลือกใช้ AI ที่ต้องการ</h3>
+        <div class="ai-selector">
+            <div class="ai-tag active" data-ai="gemini">Gemini</div>
+            <div class="ai-tag active" data-ai="gpt">GPT</div>
+            <div class="ai-tag active" data-ai="claude">Claude</div>
+        </div>
+    </div>
+
+    <div class="box">
+        <h3>💬 บอกสิ่งที่ต้องการสร้าง</h3>
+        <textarea id="prompt" rows="4" placeholder="เช่น: สร้างฉากปราสาทลอยฟ้า ที่มีแสงดาวกระจาย..."></textarea>
+        <button onclick="generate3D()">สร้างภาพเคลื่อนไหว 3D</button>
+        <div id="result" style="margin-top:15px;"></div>
+    </div>
+
+    <script>
+        let unlocked = false;
+        const LOCK_HEADER = "3DLoadAI244"; // ส่งไปตรวจสอบ ไม่ประมวลผลฝั่งลูกข่าย
+
+        function unlockSystem() {
+            const lock = document.getElementById("systemLock").value;
+            fetch("/api/status", { headers: { "X-System-Lock": lock } })
+            .then(r => {
+                if (r.ok) {
+                    unlocked = true;
+                    document.getElementById("configBox").style.opacity = "1";
+                    document.getElementById("configBox").style.pointerEvents = "auto";
+                    alert("✅ ปลดล็อคระบบสำเร็จ!");
+                } else alert("❌ รหัสไม่ถูกต้อง");
+            });
+        }
+
+        function saveKeys() {
+            if (!unlocked) return alert("ปลดล็อคก่อนครับ");
+            fetch("/api/set-keys", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-System-Lock": LOCK_HEADER },
+                body: JSON.stringify({
+                    gemini: document.getElementById("geminiKey").value,
+                    openai: document.getElementById("openaiKey").value,
+                    claude: document.getElementById("claudeKey").value
+                })
+            }).then(r => r.json()).then(d => alert(d.message));
+        }
+
+        function generate3D() {
+            if (!unlocked) return alert("ปลดล็อคก่อนครับ");
+            fetch("/api/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-System-Lock": LOCK_HEADER },
+                body: JSON.stringify({
+                    prompt: document.getElementById("prompt").value,
+                    use_ais: Array.from(document.querySelectorAll(".ai-tag.active")).map(t => t.dataset.ai)
+                })
+            }).then(r => r.json()).then(d => {
+                document.getElementById("result").innerHTML = `<pre>✅ สร้างสำเร็จ! ไฟล์: ${d.output.join(", ")}</pre>`;
+            });
+        }
+    </script>
+</body>
+</html>
 
